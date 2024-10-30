@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>websockets</title>
+  </head>
+  <body>
+    <div class="center">
+      <h1>Golang chat application</h1>
+      <h3>Currently in chat-room: general</h3>
+      <form action="" id="select-room">
+        <label for="chatroom">Chatroom: </label>
+        <input type="text" id="chatroom" name="chatroom" />
+        <br />
+        <br />
+        <input type="submit" value="change chatroom" />
+      </form>
+      <br />
+      <textarea
+        class="messagearea"
+        id="chatmessages"
+        readonly
+        name="chatmessages"
+        rows="4"
+        cols="50"
+        placeholder="welcome to chatroom"
+      ></textarea>
+      <br />
+      <form id="chatroom-message">
+        <label for="message">Message: </label>
+        <input type="text" id="message" name="message" />
+        <br />
+        <br />
+        <input type="submit" value="Send message" />
+      </form>
+    </div>
+    <script>
+        var selectedChat='general'
+        function changeRoom(){
+            var newRoom=document.getElementById("chatroom")
+            if(newRoom!=null  && newRoom.value!=selectedChat){
+                console.log(newRoom)
+            }
+            return false
+        }
+        function sendMessage(){
+            var newRoom=document.getElementById("chatroom")
+            if(newRoom!=null  && newRoom.value!=selectedChat){
+                console.log(newRoom)
+            }
+            return false
+        }
+    </script>
+  </body>
+</html>
