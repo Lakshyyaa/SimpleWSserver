@@ -31,6 +31,7 @@ func (m *Manager) serveWS(w http.ResponseWriter, r *http.Request) {
 	}
 	client := NewClient(conn, m)
 	m.addClient(client)
+	go client.connection.ReadMessage()
 }
 
 

@@ -47,7 +47,8 @@
       function sendMessage() {
         var newMessage = document.getElementById("message");
         if (newMessage != null) {
-          console.log(newMessage);
+          // This message is also seen in the messages section of networks tab in browser
+          conn.send(newMessage.value)
         }
         return false;
       }
@@ -59,7 +60,7 @@
       if (window["WebSocket"]) {
         console.log("yes it has websockets");
         // Creating new websocket here and has to be prefixed with protocol (ws or wss)
-        var conn = new WebSocket("ws://"+document.location.host+"/ws")
+        conn = new WebSocket("ws://"+document.location.host+"/ws")
         console.log('doc loc host is: ', document.location.host)
       } else {
         alert("NO WB support");
