@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"sync"
@@ -19,6 +20,7 @@ type Manager struct {
 	clients ClientList
 	// adding a mutex as we might have many clients connecting to the API concurrently
 	sync.RWMutex
+	handlers map[string]EventHandler
 }
 
 // This way of defining a function is to tell that this is a part of the Manager struct but defined outside
@@ -35,27 +37,50 @@ func (m *Manager) serveWS(w http.ResponseWriter, r *http.Request) {
 	go client.WriteMessages()
 }
 
-
 func (m *Manager) addClient(client *Client) {
 	m.Lock()
 	m.clients[client] = true
 	defer m.Unlock()
 }
 
+func (m *Manager) setUpEventHandlers() {
+	m.handlers[EventSendMessage] = SendMessage
+}
+
+func (m *Manager) routeEvent(event Event, c *Client) error {
+	handler, ok := m.handlers[event.Type]
+	if ok {
+		err := handler(event, c)
+		if err != nil {
+			return err
+		}
+		return nil
+	}else{
+		return errors.New("there is no such event type")
+	}
+}
+
+func SendMessage(event Event, c *Client) error {
+	log.Println(event)
+	return nil
+}
+
 func (m *Manager) removeClient(client *Client) {
 	m.Lock()
 	defer m.Unlock()
-	_, ok:=m.clients[client]; 
-	if ok{
+	_, ok := m.clients[client]
+	if ok {
 		client.connection.Close()
 		delete(m.clients, client)
 	}
 }
 
-
 // each manager has its clientlist
 func NewManager() *Manager {
-	return &Manager{
-		clients: make(ClientList),
+	m := &Manager{
+		clients:  make(ClientList),
+		handlers: make(map[string]EventHandler),
 	}
+	m.setUpEventHandlers()
+	return m
 }

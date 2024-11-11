@@ -36,6 +36,30 @@
       </form>
     </div>
     <script>
+      // creating an event type for each message to be wrapped into this event for uniformity and
+      // typ-safety
+      class Event {
+        constructor(type, payload) {
+          this.type = type;
+          this.payload = payload;
+        }
+      }
+      function routeEvent(event) {
+        if (event.type === undefined) {
+          alert("no type defined in the field");
+        }
+        switch (event.type) {
+          case "new_message":
+            console.log("new message");
+            break;
+          default:
+            alert("unsupported message");
+        }
+      }
+      function sendEvent(eventName, payload) {
+        const event = new Event(eventName, payload);
+        conn.send(JSON.stringify(event));
+      }
       var selectedChat = "general";
       function changeRoom() {
         var newRoom = document.getElementById("chatroom");
@@ -48,7 +72,7 @@
         var newMessage = document.getElementById("message");
         if (newMessage != null) {
           // This message is also seen in the messages section of networks tab in browser
-          conn.send(newMessage.value)
+          sendEvent("send_message", newMessage.value);
         }
         return false;
       }
@@ -60,8 +84,15 @@
       if (window["WebSocket"]) {
         console.log("yes it has websockets");
         // Creating new websocket here and has to be prefixed with protocol (ws or wss)
-        conn = new WebSocket("ws://"+document.location.host+"/ws")
-        console.log('doc loc host is: ', document.location.host)
+        conn = new WebSocket("ws://" + document.location.host + "/ws");
+        // on frontend when client receives message conn.onmessage listens for message event
+        conn.onmessage = function (event) {
+          const eventData = JSON.parse(event.data); 
+          const newEvent = Object.assign(new Event(), eventData); 
+          routeEvent(newEvent)
+        };
+
+        console.log("doc loc host is: ", document.location.host);
       } else {
         alert("NO WB support");
       }
