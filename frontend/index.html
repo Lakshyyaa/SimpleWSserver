@@ -120,7 +120,7 @@
           console.log("yes it has websockets");
           // Creating new websocket here and has to be prefixed with protocol (ws or wss)
           conn = new WebSocket(
-            "ws://" + document.location.host + "/ws?otp="+
+            "wss://" + document.location.host + "/ws?otp="+
             otp
           );
           conn.onopen = function (event) {

@@ -135,7 +135,7 @@ func NewManager(ctx context.Context) *Manager {
 func checkOrigin(r *http.Request) bool {
 	origin := r.Header.Get("Origin")
 	switch origin {
-	case "http://localhost:3000":
+	case "https://localhost:3000":
 		return true
 	default:
 		return false
