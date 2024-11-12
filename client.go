@@ -46,6 +46,8 @@ func (c *Client) ReadMessages() {
 	}
 	// handler resets deadline when pong received
 	c.connection.SetPongHandler(c.pongHandler)
+	// set max size of message received in bytes
+	c.connection.SetReadLimit(512)
 	for {
 		_, payLoad, err := c.connection.ReadMessage()
 		if err != nil {
