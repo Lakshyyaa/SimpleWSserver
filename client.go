@@ -4,6 +4,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -19,6 +20,11 @@ type Client struct {
 	// will be in an event wrapper
 }
 
+var (
+	pongWait     = 10 * time.Second
+	pingInterval = pongWait * 9 / 10
+)
+
 func NewClient(conn *websocket.Conn, manager *Manager) *Client {
 	return &Client{
 		connection: conn,
@@ -33,6 +39,13 @@ func (c *Client) ReadMessages() {
 		// cleanup function to remove the client
 		c.manager.removeClient(c)
 	}()
+	err := c.connection.SetReadDeadline(time.Now().Add(pongWait))
+	if err != nil {
+		log.Println("not received a pong ", err)
+		return
+	}
+	// handler resets deadline when pong received
+	c.connection.SetPongHandler(c.pongHandler)
 	for {
 		_, payLoad, err := c.connection.ReadMessage()
 		if err != nil {
@@ -64,6 +77,7 @@ func (c *Client) WriteMessages() {
 		// cleanup function to remove the client
 		c.manager.removeClient(c)
 	}()
+	ticker := time.NewTicker(pingInterval)
 	for {
 		select {
 		// reading from the egress and sending to ws server
@@ -77,7 +91,7 @@ func (c *Client) WriteMessages() {
 				return
 			}
 			data, er := json.Marshal(messages)
-			if er != nil {	
+			if er != nil {
 				log.Println(er)
 			}
 			err := c.connection.WriteMessage(websocket.TextMessage, data)
@@ -85,6 +99,20 @@ func (c *Client) WriteMessages() {
 				log.Println("failed to send message ", err)
 			}
 			log.Println("message is sent")
+		case <-ticker.C:
+			// ticks at pingInterval
+			log.Println("sending ping to client")
+			err := c.connection.WriteMessage(websocket.PingMessage, []byte(``))
+			if err != nil {
+				log.Println("error in sending ping ", err)
+			}
+			// browser on its own sends a pong response, no need to write code for that
 		}
 	}
+}
+
+func (c *Client) pongHandler(pongMsg string) error {
+	log.Println("received a pong")
+	// resetting the timer
+	return c.connection.SetReadDeadline(time.Now().Add(pongWait))
 }
