@@ -62,7 +62,7 @@ func (m *Manager) loginHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if (req.Username == "lakshya" && req.Password == "123") {
+	if req.Username == "lakshya" && req.Password == "123" {
 		type respone struct {
 			OTP string `json:"otp"`
 		}
@@ -91,6 +91,7 @@ func (m *Manager) addClient(client *Client) {
 
 func (m *Manager) setUpEventHandlers() {
 	m.handlers[EventSendMessage] = SendMessage
+	m.handlers[EventChangeRoom] = ChatRoomHandler
 }
 
 func (m *Manager) routeEvent(event Event, c *Client) error {
@@ -106,8 +107,48 @@ func (m *Manager) routeEvent(event Event, c *Client) error {
 	}
 }
 
+// takes a sendmessage event, unmarshalls its payload, creates it into a newmessage event payload
+// and then marshalls it and then finally converts into a complete event with payload and type
 func SendMessage(event Event, c *Client) error {
-	log.Println(event)
+	var chatevent SendMessageEvent
+	err := json.Unmarshal(event.Payload, &chatevent)
+	// First the client req goes ReadMessages which unmarshalls and reads type and calls appropriate
+	// event handler. In this case the appropriate one is called and now it unmarshalls the
+	// payload field of the event which is json itself
+	if err != nil {
+		log.Println("bad payload in the req", err)
+		return err
+	}
+	var broadMessage NewMessageEvent
+	broadMessage.Sent = time.Now()
+	broadMessage.Message = chatevent.Message
+	broadMessage.From = chatevent.From
+	data, er := json.Marshal(broadMessage)
+	if er != nil {
+		log.Println("marshalling error ", err)
+		return er
+	}
+	outgoingEvent := Event{
+		Payload: data,
+		Type:    EventNewMessage,
+	}
+	// sending that message to all clients of the manager which are in same room
+	for client := range c.manager.clients {
+		if client.chatroom == c.chatroom {
+			client.egress <- outgoingEvent
+		}
+	}
+	return nil
+}
+
+func ChatRoomHandler(event Event, c *Client) error {
+	var changeRoomEvent ChangeRoomEvent
+	err := json.Unmarshal(event.Payload, &changeRoomEvent)
+	if err != nil {
+		log.Println("unmarshall error in chage room")
+		return err
+	}
+	c.chatroom = changeRoomEvent.Name
 	return nil
 }
 

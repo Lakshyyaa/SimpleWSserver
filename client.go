@@ -18,6 +18,7 @@ type Client struct {
 	egress chan Event
 	// earlier it was []byte but later changed to Event as now eahc message sent
 	// will be in an event wrapper
+	chatroom string
 }
 
 var (

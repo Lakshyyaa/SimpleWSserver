@@ -57,35 +57,75 @@
           this.payload = payload;
         }
       }
+      class SendMessageEvent {
+        constructor(message, from) {
+          this.message = message;
+          this.from = from;
+        }
+      }
+      class NewMessageEvent {
+        constructor(message, from, sent) {
+          this.message = message;
+          this.from = from;
+          this.sent = sent;
+        }
+      }
+      class ChangeChatRoomEvent {
+        constructor(name) {
+          this.name = name;
+        }
+      }
+      function changeChatRoom() {
+        var newchat = document.getElementById("chatroom");
+        if (newchat != null && newchat.value != selectedChat) {
+          selectedChat = newchat.value;
+          header = document.getElementById("chat-header").innerHTML =
+            "Currently in: " + selectedChat;
+          let changeEvent = new ChangeChatRoomEvent(selectedChat);
+          sendEvent("change_room", changeEvent);
+          textarea = document.getElementById("chatmessages");
+          textarea.innerHTML += "you changed into " + selectedChat;
+        }
+        return false
+        // return false as this is being called by a form which redirects in the end so this
+        // or do e.preventdefault()
+      }
       function routeEvent(event) {
         if (event.type === undefined) {
           alert("no type defined in the field");
         }
         switch (event.type) {
           case "new_message":
-            console.log("new message");
+            // const messageEvent=new NewMessageEvent(event.payload.message, event.payload.from, event.payload.sent)
+            const messageEvent = Object.assign(
+              new NewMessageEvent(),
+              event.payload
+            );
+            appendChatMessage(messageEvent);
             break;
           default:
             alert("unsupported message");
         }
+      }
+      function appendChatMessage(msgEvent) {
+        let date = new Date(msgEvent.sent);
+        const format = `${date.toLocaleString()}: ${msgEvent.message}`;
+        textarea = document.getElementById("chatmessages");
+        textarea.innerHTML += "\n" + format;
+        textarea.scrollTop = textarea.scrollHeight;
       }
       function sendEvent(eventName, payload) {
         const event = new Event(eventName, payload);
         conn.send(JSON.stringify(event));
       }
       var selectedChat = "general";
-      function changeRoom() {
-        var newRoom = document.getElementById("chatroom");
-        if (newRoom != null && newRoom.value != selectedChat) {
-          console.log(newRoom);
-        }
-        return false;
-      }
       function sendMessage() {
+        // sending the sendmessageevent to the server
         var newMessage = document.getElementById("message");
         if (newMessage != null) {
+          let outgoingEvent = new SendMessageEvent(newMessage.value, "lakshya");
           // This message is also seen in the messages section of networks tab in browser
-          sendEvent("send_message", newMessage.value);
+          sendEvent("send_message", outgoingEvent);
         }
         return false;
       }
@@ -95,6 +135,10 @@
           password: document.getElementById("password").value,
         };
         fetch("/login", {
+          headers: {
+            "Content-Type": "application/json",
+          },
+
           method: "POST",
           body: JSON.stringify(formData),
           mode: "cors",
@@ -120,8 +164,7 @@
           console.log("yes it has websockets");
           // Creating new websocket here and has to be prefixed with protocol (ws or wss)
           conn = new WebSocket(
-            "wss://" + document.location.host + "/ws?otp="+
-            otp
+            "wss://" + document.location.host + "/ws?otp=" + otp
           );
           conn.onopen = function (event) {
             document.getElementById("connection-header").innerHTML =
@@ -144,7 +187,7 @@
         }
       }
       window.onload = function () {
-        document.getElementById("select-room").onsubmit = changeRoom;
+        document.getElementById("select-room").onsubmit = changeChatRoom;
         document.getElementById("chatroom-message").onsubmit = sendMessage;
         document.getElementById("login-form").onsubmit = Login;
       };
